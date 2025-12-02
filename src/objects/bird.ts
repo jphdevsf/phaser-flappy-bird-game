@@ -111,6 +111,13 @@ export class Bird extends Phaser.GameObjects.Sprite {
     }
   }
 
+  public flap (): void {
+    if (this.currentState === this.aliveState) {
+      this.changeState(this.flappingState)
+      new JumpCommand(this).execute()
+    }
+  }
+
   public updateAngle (): void { if (this.angle < Bird.CONFIG.MAX_ANGLE) this.angle += Bird.CONFIG.ANGLE_INCREMENT }
 
   public checkBounds (): void { if (this.y + this.height > this.scene.sys.canvas.height) this.changeState(this.deadState) }

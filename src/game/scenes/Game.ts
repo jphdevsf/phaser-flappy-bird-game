@@ -1,22 +1,72 @@
 import { Scene } from 'phaser'
 import { Bird } from '../../objects/bird'
 import { Pipe } from '../../objects/pipe'
+import { GameState } from '../states/GameState'
+import { ReadyState } from '../states/ReadyState'
+import { PlayingState } from '../states/PlayingState'
+import { GameOverState } from '../states/GameOverState'
+import { PipeFactory } from '../factories/PipeFactory'
 
 export class Game extends Scene {
-  private bird: Bird
-  private pipes: Phaser.GameObjects.Group
-  private background: Phaser.GameObjects.TileSprite
-  private scoreText: Phaser.GameObjects.BitmapText
-  private startText: Phaser.GameObjects.Text
-  private gameState: 'ready' | 'playing' | 'gameOver' = 'ready'
+  protected bird!: Bird
+  protected pipes!: Phaser.GameObjects.Group
+  protected background!: Phaser.GameObjects.TileSprite
+  protected scoreText!: Phaser.GameObjects.BitmapText
+  protected startText?: Phaser.GameObjects.Text
+  private currentState!: GameState
 
   constructor () {
     super('Game')
   }
 
+  public setState (newState: GameState): void {
+    this.currentState?.exit(this)
+    newState.enter(this)
+    this.currentState = newState
+  }
+
+  public getBird (): Bird {
+    return this.bird
+  }
+
+  public getPipes (): Phaser.GameObjects.Group {
+    return this.pipes
+  }
+
+  public getBackground (): Phaser.GameObjects.TileSprite {
+    return this.background
+  }
+
+  public destroyStartText (): void {
+    if (this.startText) {
+      this.startText.destroy()
+      this.startText = undefined
+    }
+  }
+
+  public stopPipes (): void {
+    Phaser.Actions.Call(
+      this.pipes.getChildren(),
+      (pipe: Phaser.GameObjects.GameObject) => {
+        pipe.body!.velocity.x = 0
+      },
+      this
+    )
+  }
+
+  public addNewRowOfPipes (): void {
+    // update the score
+    const currentScore = this.registry.get('score') + 1
+    this.registry.set('score', currentScore)
+    this.scoreText.setText(String(currentScore))
+
+    // Create new row of pipes
+    const newPipes = PipeFactory.createRow(this, 400)
+    this.pipes.addMultiple(newPipes)
+  }
+
   init (): void {
     this.registry.set('score', 0)
-    this.gameState = 'ready'
   }
 
   preload () {
@@ -37,7 +87,7 @@ export class Game extends Scene {
         this.sys.canvas.width / 2 - 14,
         30,
         'font',
-        this.registry.values.score
+        '0'
       )
       .setDepth(2)
 
@@ -58,111 +108,25 @@ export class Game extends Scene {
       {
         fontFamily: 'Arial',
         fontSize: 32,
-        color: '##000000',
+        color: '#000000',
         align: 'center'
       }
     ).setOrigin(0.5).setDepth(10)
 
-    // Pause physics initially
-    this.physics.world.pause()
+    this.setState(new ReadyState())
+
+    this.input.on('pointerdown', () => {
+      if (this.currentState instanceof ReadyState) {
+        this.setState(new PlayingState())
+      } else if (this.currentState instanceof PlayingState && !this.bird.getDead()) {
+        this.bird.flap()
+      } else if (this.currentState instanceof GameOverState) {
+        this.scene.restart()
+      }
+    }, this)
   }
 
   update (): void {
-    if (this.gameState === 'ready') {
-      // Wait for spacebar to start
-      if (this.input!.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).isDown) {
-        this.startGame()
-      }
-      return
-    }
-
-    if (this.gameState === 'playing') {
-      this.background.tilePositionX += 4
-      this.bird.update()
-      if (this.bird.getDead()) {
-        this.gameState = 'gameOver'
-      }
-      if (!this.bird.getDead()) {
-        this.physics.add.overlap(this.bird, this.pipes, () => {
-          this.bird.setDead(true)
-          this.gameState = 'gameOver'
-        })
-      }
-    }
-
-    if (this.gameState === 'gameOver') {
-      this.bird.update()
-      if (this.bird.getDead()) {
-        Phaser.Actions.Call(
-          this.pipes.getChildren(),
-          (pipe) => {
-            pipe.body!.velocity.x = 0
-          },
-          this
-        )
-      }
-
-      if (this.bird.y > this.sys.canvas.height) {
-        this.scene.restart()
-      }
-    }
-  }
-
-  private addNewRowOfPipes (): void {
-    // update the score
-    this.registry.values.score += 1
-    this.scoreText.setText(this.registry.values.score)
-
-    // randomly pick a number between 1 and 5
-    const hole = Math.floor(Math.random() * 5) + 1
-
-    // add 6 pipes with one big hole at position hole and hole + 1
-    for (let i = 0; i < 10; i++) {
-      if (i !== hole && i !== hole + 1 && i !== hole + 2) {
-        if (i === hole - 1) {
-          this.addPipe(400, i * 60, 0)
-        } else if (i === hole + 3) {
-          this.addPipe(400, i * 60, 1)
-        } else {
-          this.addPipe(400, i * 60, 2)
-        }
-      }
-    }
-  }
-
-  private addPipe (x: number, y: number, frame: number): void {
-    // create a new pipe at the position x and y and add it to group
-    this.pipes.add(
-      new Pipe({
-        scene: this,
-        x,
-        y,
-        frame,
-        key: 'pipe'
-      })
-    )
-  }
-
-  private startGame (): void {
-    this.gameState = 'playing'
-    this.startText.destroy()
-    this.physics.world.resume()
-
-    // Add overlap collider once
-    this.physics.add.overlap(this.bird, this.pipes, () => {
-      this.bird.setDead(true)
-      this.gameState = 'gameOver'
-    })
-
-    // Initial pipe row
-    this.addNewRowOfPipes()
-
-    // Start pipe timer
-    this.time.addEvent({
-      delay: 1500,
-      callback: this.addNewRowOfPipes,
-      callbackScope: this,
-      loop: true
-    })
+    this.currentState.update(this)
   }
 }
