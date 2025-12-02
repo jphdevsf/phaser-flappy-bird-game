@@ -19,8 +19,6 @@ const config: Types.Core.GameConfig = {
   render: { pixelArt: true }
 }
 
-const StartGame = (parent: string) => {
-  return new Game({ ...config, parent })
-}
+const StartGame = (parent: string) => new Game({ ...config, parent })
 
 export default StartGame
