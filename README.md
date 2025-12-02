@@ -1,10 +1,10 @@
 # Phaser Flappy Bird (2025 Update)
 
-A beginner-friendly recreation of the classic Flappy Bird game using Phaser 3. This is an updated version of [digitsensitive/phaser3-flappy-bird](https://github.com/digitsensitive/phaser3-flappy-bird) from 2019, modernized for Phaser 3.90.0 with TypeScript fixes, asset handling, and GitHub Pages deployment.
+Taking a break from bigger projects to play with [Phaser 3](https://phaser.io/), a javascript game framework. This is a Flappy Bird clone, originally by [digitsensitive](https://github.com/digitsensitive/phaser3-flappy-bird) from 2019, modernized in 2025 for Phaser 3.90.0 with TypeScript fixes, asset handling, and GitHub Pages deployment.
 
 ## Demo
 
-Play the game live: [![Play Flappy Bird](https://img.shields.io/badge/Play-Now-brightgreen)](https://jphdevsf.github.io/phaser-flappy-bird-game)
+[Play it here!](https://jphdevsf.github.io/phaser-flappy-bird-game)
 
 ## Installation
 
@@ -33,7 +33,7 @@ Play the game live: [![Play Flappy Bird](https://img.shields.io/badge/Play-Now-b
    ```
    Outputs to `/dist/`.
 
-3. Deploy to GitHub Pages (optional):
+3. Deploy to GitHub Pages (optional), using [`gh-pages`](https://www.npmjs.com/package/gh-pages):
    ```
    npm run deploy
    ```
